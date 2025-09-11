@@ -1,0 +1,42 @@
+name: Init New Repo with Generator
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo_name:
+        description: "Name of the new GitHub repo"
+        required: true
+
+jobs:
+  init-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout generator
+        uses: actions/checkout@v3
+        with:
+          repository: witsinnovationlab/wits-project-generator
+          path: generator
+
+      - name: Create New Repo
+        run: |
+          gh repo create ${{ github.repository_owner }}/${{ github.event.inputs.repo_name }} --public --confirm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scaffold New Project
+        run: |
+          mkdir ${{ github.event.inputs.repo_name }}
+          cd ${{ github.event.inputs.repo_name }}
+          npm install -g yo
+          npm install ../generator
+          yo @witsinnovationlab/wits-project-generator:node-ts --no-insight --skip-install
+
+      - name: Push to Repo
+        run: |
+          cd ${{ github.event.inputs.repo_name }}
+          git init
+          git remote add origin https://github.com/${{ github.repository_owner }}/${{ github.event.inputs.repo_name }}.git
+          git add .
+          git commit -m "Initial commit from generator"
+          git branch -M main
+          git push origin main
