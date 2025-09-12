@@ -3,21 +3,60 @@ name: Init New Repo with Generator
 on:
   workflow_dispatch:
     inputs:
+      org_name:
+        description: "Name of the GitHub organization"
+        required: true
       repo_name:
         description: "Name of the new GitHub repo"
         required: true
 
 jobs:
   create-repo:
-    runs-on: self-hosted  # since you're using your laptop as runner
+    runs-on: self-hosted
     steps:
-      - name: Create GitHub repository with API
+      - name: Check if organization exists
         run: |
-          curl -X POST \
+          ORG="${{ github.event.inputs.org_name }}"
+          REPO="${{ github.event.inputs.repo_name }}"
+
+          echo "Checking if organization '$ORG' exists..."
+          ORG_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
-            https://api.github.com/user/repos \
-            -d '{"name":"${{ github.event.inputs.repo_name }}","private":false}'
+            https://api.github.com/orgs/$ORG)
+
+          if [ "$ORG_CHECK" -ne 200 ]; then
+            echo "❌ Organization '$ORG' does not exist or you don't have access."
+            exit 1
+          fi
+
+          echo "✅ Organization '$ORG' exists."
+
+          echo "Checking if repo '$REPO' already exists in org '$ORG'..."
+          REPO_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/$ORG/$REPO)
+
+          if [ "$REPO_CHECK" -eq 200 ]; then
+            echo "❌ Repository '$REPO' already exists in organization '$ORG'."
+            exit 1
+          fi
+
+          echo "✅ Repository '$REPO' does not exist. Creating..."
+
+          CREATE_RESP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/orgs/$ORG/repos \
+            -d "{\"name\":\"$REPO\",\"private\":false}")
+
+          if [ "$CREATE_RESP" -eq 201 ]; then
+            echo "🎉 Repository '$ORG/$REPO' created successfully!"
+          else
+            echo "❌ Failed to create repository. HTTP status: $CREATE_RESP"
+            exit 1
+          fi
 
       - name: Scaffold New Project with Yeoman
         run: |
