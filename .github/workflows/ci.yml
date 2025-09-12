@@ -25,7 +25,7 @@ jobs:
           cd ${{ github.event.inputs.repo_name }}
 
           # Yeoman is already installed on your runner
-          yo @witsinnovationlab/wits-project:node-ts
+          yo @witsinnovationlab/wits-project:node-ts --skip-install
 
       - name: Push to Repo
         run: |
