@@ -16,15 +16,23 @@ on:
         description: "Select category"
         type: choice
         options:
-          - specification
-          - refernce-apps
+          - specifications
+          - reference-apps
+          - automation-testing
+          - mock-sandbox
+          - adaptors
+          - sdks
+          - infrastructure
+          - documentation
+          - logs
       subcategory:
         description: "Select subcategory"
         type: choice
         options:
           - buyer-apps
           - seller-apps
-          - adaptors
+          - logistics-apps
+          - ecommerce
       domain:
         description: "Select domain"
         type: choice
