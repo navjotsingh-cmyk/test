@@ -6,6 +6,7 @@ on:
       org_name:
         description: "Name of the GitHub organization"
         required: true
+        default: "ondc-official"
       repo_name:
         description: "Name of the new GitHub repo"
         required: true
@@ -33,13 +34,20 @@ on:
           - seller-apps
           - logistics-apps
           - ecommerce
+          - core-framework
+          - services
+          - mock-servers
       domain:
         description: "Select domain"
         type: choice
         options:
           - retail
+          - logistics
           - agriculture
           - healthcare
+          - financial
+          - mobility
+          - education
       type:
         description: "Select type"
         type: choice
@@ -47,13 +55,20 @@ on:
           - frontend
           - backend
           - mobile
+          - api
+          - library
+          - tool
+          - documentation
       status:
         description: "Select status"
         type: choice
         options:
+          - production
           - beta
           - alpha
-          - production
+          - experimental
+          - deprecated
+          - archived
 
 jobs:
   create-repo:
@@ -71,11 +86,11 @@ jobs:
             https://api.github.com/orgs/$ORG)
 
           if [ "$ORG_CHECK" -ne 200 ]; then
-            echo "❌ Organization '$ORG' does not exist or you don't have access."
+            echo "Organization '$ORG' does not exist or you don't have access."
             exit 1
           fi
 
-          echo "✅ Organization '$ORG' exists."
+          echo "Organization '$ORG' exists."
 
           echo "Checking if repo '$REPO' already exists in org '$ORG'..."
           REPO_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -84,11 +99,11 @@ jobs:
             https://api.github.com/repos/$ORG/$REPO)
 
           if [ "$REPO_CHECK" -eq 200 ]; then
-            echo "❌ Repository '$REPO' already exists in organization '$ORG'."
+            echo "Repository '$REPO' already exists in organization '$ORG'."
             exit 1
           fi
 
-          echo "✅ Repository '$REPO' does not exist. Creating..."
+          echo "Repository '$REPO' does not exist. Creating..."
 
           DESC="${REPO}: [${{ github.event.inputs.category }}/${{ github.event.inputs.subcategory }}] ${{ github.event.inputs.brief_description }} | status: ${{ github.event.inputs.status }} | domain: ${{ github.event.inputs.domain }}"
 
@@ -99,10 +114,10 @@ jobs:
             -d "{\"name\":\"$REPO\",\"private\":false,\"description\":\"$DESC\"}")
 
           if [ "$CREATE_RESP" -eq 201 ]; then
-            echo "🎉 Repository '$ORG/$REPO' created successfully with description!"
+            echo "Repository '$ORG/$REPO' created successfully with description!"
             echo "Description: $DESC"
           else
-            echo "❌ Failed to create repository. HTTP status: $CREATE_RESP"
+            echo "Failed to create repository. HTTP status: $CREATE_RESP"
             exit 1
           fi
 
@@ -119,7 +134,7 @@ jobs:
             https://api.github.com/repos/$ORG/$REPO/topics \
             -d "{\"names\": $TOPICS}"
 
-          echo "✅ Topics added successfully: $TOPICS"
+          echo "Topics added successfully: $TOPICS"
 
       - name: Scaffold New Project with Yeoman
         run: |
