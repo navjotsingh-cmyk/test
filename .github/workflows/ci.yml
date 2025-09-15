@@ -157,6 +157,8 @@ jobs:
           cd ${{ github.event.inputs.repo_name }}
           rm -rf .git  # 🚀 remove template's git history
           git init
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git branch -M main
           git remote add origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.event.inputs.org_name }}/${{ github.event.inputs.repo_name }}.git
           git add .
