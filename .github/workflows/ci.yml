@@ -140,7 +140,7 @@ jobs:
       - name: Clone Template Repo
         run: |
           mkdir -p ${{ github.event.inputs.repo_name }}
-          git clone https://github.com/ondcdemo/test55-node-backend.git
+          git clone https://github.com/witsinnovationlab/wits-project-template.git template
           cp -r template/* ${{ github.event.inputs.repo_name }}/
           cp -r template/.* ${{ github.event.inputs.repo_name }}/ || true
 
