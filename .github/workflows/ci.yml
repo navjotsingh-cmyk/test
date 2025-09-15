@@ -75,36 +75,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check if organization exists
+      - name: Check if organization exists and create repo
         run: |
           ORG="${{ github.event.inputs.org_name }}"
           REPO="${{ github.event.inputs.repo_name }}"
 
-          echo "Checking if organization '$ORG' exists..."
+          echo "Checking org..."
           ORG_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/orgs/$ORG)
 
           if [ "$ORG_CHECK" -ne 200 ]; then
-            echo "Organization '$ORG' does not exist or you don't have access."
+            echo "❌ Org '$ORG' not found or no access."
             exit 1
           fi
 
-          echo "Organization '$ORG' exists."
+          echo "✅ Org exists."
 
-          echo "Checking if repo '$REPO' already exists in org '$ORG'..."
+          echo "Checking repo..."
           REPO_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/$ORG/$REPO)
 
           if [ "$REPO_CHECK" -eq 200 ]; then
-            echo "Repository '$REPO' already exists in organization '$ORG'."
+            echo "❌ Repo '$REPO' already exists."
             exit 1
           fi
-
-          echo "Repository '$REPO' does not exist. Creating..."
 
           DESC="${REPO}: [${{ github.event.inputs.category }}/${{ github.event.inputs.subcategory }}] ${{ github.event.inputs.brief_description }} | status: ${{ github.event.inputs.status }} | domain: ${{ github.event.inputs.domain }}"
 
@@ -115,10 +113,9 @@ jobs:
             -d "{\"name\":\"$REPO\",\"private\":false,\"description\":\"$DESC\"}")
 
           if [ "$CREATE_RESP" -eq 201 ]; then
-            echo "Repository '$ORG/$REPO' created successfully with description!"
-            echo "Description: $DESC"
+            echo "🎉 Repo created: $ORG/$REPO"
           else
-            echo "Failed to create repository. HTTP status: $CREATE_RESP"
+            echo "❌ Failed with status $CREATE_RESP"
             exit 1
           fi
 
@@ -135,14 +132,14 @@ jobs:
             https://api.github.com/repos/$ORG/$REPO/topics \
             -d "{\"names\": $TOPICS}"
 
-          echo "Topics added successfully: $TOPICS"
+          echo "✅ Topics added: $TOPICS"
 
       - name: Clone Template Repo
         run: |
-          mkdir -p ${{ github.event.inputs.repo_name }}
           git clone https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/ondcdemo/test55-node-backend.git template
+          mkdir -p ${{ github.event.inputs.repo_name }}
           cp -r template/* ${{ github.event.inputs.repo_name }}/
-          cp -r template/.* ${{ github.event.inputs.repo_name }}/ || true
+          cp -r template/.[!.]* ${{ github.event.inputs.repo_name }}/ || true
 
       - name: Update Project Files with Repo Name
         run: |
@@ -155,9 +152,10 @@ jobs:
           sed -i "s/template-project/$REPO_NAME/g" docker-compose.yml || true
           sed -i "s/template-project/$REPO_NAME/g" docker-compose.production.yml || true
 
-      - name: Push to Repo
+      - name: Push to New Repo
         run: |
           cd ${{ github.event.inputs.repo_name }}
+          rm -rf .git  # 🚀 remove template's git history
           git init
           git branch -M main
           git remote add origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.event.inputs.org_name }}/${{ github.event.inputs.repo_name }}.git
